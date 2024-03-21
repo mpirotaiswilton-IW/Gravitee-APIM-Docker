@@ -22,10 +22,17 @@ post_headers = {
     'accept' : "application/json"
 }
 
+delete_headers = {
+    'Authorization' : "Basic YWRtaW46YWRtaW4="
+}
+
 # Import APIs to Gravitee using the OpenAPI spec files
 
+
+print("Importing APIs to Gateway using OpenAPI files in " + specs_dir + ":")
+
 for spec_file_name in spec_file_names:
-    print(spec_file_name)
+    print("Importing: " + spec_file_name + "...")
 
     with open(specs_dir + "" + spec_file_name) as api_spec:
 
@@ -43,7 +50,7 @@ for spec_file_name in spec_file_names:
         post_api_res = requests.post(url=base_url + "/apis/import/swagger",
                                         headers= post_headers,
                                         json= api_post_content)
-        print(post_api_res.status_code)
+        print("response: " + str(post_api_res.status_code))
         if post_api_res.status_code != 201 :
             print(post_api_res.content)
 
@@ -56,8 +63,15 @@ for api in json.loads(get_apis_response.content):
 
 # Create plans for each API
 
+print("Creating plans for each API :")
+
 for api_uuid in api_uuids:
     
+    get_api_response = requests.get(url= base_url + "/apis/" + api_uuid,
+                        headers= get_headers)
+
+    api = json.loads(get_api_response.content)
+
     path_operator = {
         'path' : "/",
         'operator' : "STARTS_WITH"
@@ -97,29 +111,25 @@ for api_uuid in api_uuids:
                   headers=post_headers,
                   json=standalone_plan_post_content)
     
-    print()
-    print()
-    print(create_stdl_plan_res.status_code)
-    print(create_stdl_plan_res.content)
-
-    stdl_plans_uuids.append(json.loads(create_stdl_plan_res.content)['id'])
+    print("Creating plans for api \"" + api['name'] + "\":")
+    print("Standalone plan: " + str(create_stdl_plan_res.status_code))
+    
+    if create_stdl_plan_res.status_code == 201:
+        stdl_plans_uuids.append(json.loads(create_stdl_plan_res.content)['id'])
 
     create_mltapi_plan_res =  requests.post(url=base_url + "/apis/" + api_uuid + "/plans",
                   headers=post_headers,
                   json=multiapi_plan_post_content)
     
-    print(create_mltapi_plan_res.status_code)
+    print("Multi-API plan: " + str(create_mltapi_plan_res.status_code))
 
-
-    mltapi_plans_uuids.append(json.loads(create_mltapi_plan_res.content)['id'])
-    
-    
-    # get_pub_plans_res = requests.get(url=base_url + "/apis/" + api_uuid + "/plans?status=PUBLISHED",
-    #                                 headers=get_headers)
-    
-    # print(get_pub_plans_res.content)
+    if create_mltapi_plan_res.status_code == 201:
+        mltapi_plans_uuids.append(json.loads(create_mltapi_plan_res.content)['id'])
 
 # Create Applications with single  subscription
+
+
+print("Creating applications:")
 
 app_names= [
     "Oracle Cloud Finance Invoices",
@@ -132,19 +142,22 @@ for i in range(len(stdl_plans_uuids)):
         'description': "Standalone application for " + app_names[i]
     }
 
+    print("    Creating application \"" + stdl_app_content['name'] + "\":")
+
     create_stdl_app_res = requests.post(url=base_url + "/applications",
                   headers=post_headers,
                   json=stdl_app_content)
     
-    print(create_stdl_app_res.status_code)
+    print("response: " + str(create_stdl_app_res.status_code))
     # print(create_stdl_app_res.content)
 
     stdl_app_uuid = json.loads(create_stdl_app_res.content)['id']
 
+    print("    Creating subscription for " + stdl_app_content['name'] + ":")
+
     create_stdl_plan_sub_res = requests.post(url=base_url + "/apis/" + api_uuids[i] + "/subscriptions?plan=" + stdl_plans_uuids[i] + "&application=" + stdl_app_uuid,
                   headers=post_headers)
-    print(create_stdl_plan_sub_res.status_code)
-    print(create_stdl_plan_sub_res.content)
+    print("response: " + str(create_stdl_plan_sub_res.status_code))
     
 # Create Multi-Api App with multiple subscriptions
 
@@ -153,16 +166,22 @@ mltapi_app_content = {
         'description': "An application that 2 subscriptions for 2 different APIs"
     }
 
+print("    Creating application \"" + mltapi_app_content['name'] + "\":")
+
 create_mltapi_app_res = requests.post(url=base_url + "/applications",
                 headers=post_headers,
                 json=mltapi_app_content)
 
-print(create_mltapi_app_res.status_code)
+print("response: " + str(create_mltapi_app_res.status_code))
 
 mltapi_app_uuid = json.loads(create_mltapi_app_res.content)['id']
 for i in range(len(api_uuids)):
 
+    print("    Creating subscription for " + mltapi_app_content['name'] + ":")
+
+
     create_mltapi_plan_sub_res = requests.post(url=base_url + "/apis/" + api_uuids[i] + "/subscriptions?plan=" + mltapi_plans_uuids[i] + "&application=" + mltapi_app_uuid,
                     headers=post_headers)
-    print(create_mltapi_plan_sub_res.status_code)
-    print(create_mltapi_plan_sub_res.content)
+    print("response: " + str(create_mltapi_plan_sub_res.status_code))
+
+print("Initialization now finished. Exiting Program...")
