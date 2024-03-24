@@ -15,6 +15,7 @@ This repo contains a dockerized Gravitee API Manager deployment and python scrip
 
 - Install Docker on your device (you can use the following link for a guide: <https://docs.docker.com/get-docker/)>)
 - Install Python on your device (you can find the version used to develop the initialization script with the following link: <https://www.python.org/downloads/release/python-3120/>)
+- Install the `requests` module for Python (you can use the following link to find instructions to install it on your local machine: <https://pypi.org/project/requests/>)
 
 2. Clone this repository or download the .zip file from GitHub (extract the downloaded zip file)
 
